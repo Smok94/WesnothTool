@@ -1,50 +1,70 @@
-from tkinter import *
-import os
+import kivy
+from kivy.app import App
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.widget import Widget
+from kivy.uix.textinput import TextInput
+from kivy.uix.boxlayout import BoxLayout
+import os, io
 import wmlparser3 as wml
 
-class Page(Frame):
-    def __init__(self, *args, **kwargs):
-        Frame.__init__(self, *args, **kwargs)
+class WACApp(App):
+    def build(self):
+        global interface
+        interface = InterfaceManager()
+        return interface
 
-    def show(self):
-        self.lift()
+class InterfaceManager(BoxLayout):
+    def __init__(self):
+        super(InterfaceManager, self).__init__()
+        self.add_widget(StartPage())
+        
 
-class StartPage(Page):
-    def __init__(self, addons, *args, **kwargs):
-        Page.__init__(self, *args, **kwargs)
-        Entry(self).pack()
+class StartPage(BoxLayout):
+    def __init__(self):
+        super(StartPage, self).__init__(orientation='vertical')
+        self.input = TextInput()
+        self.add_widget(self.input)
+        w = Button(text="Create")
+        w.bind(on_press = lambda a: self.create())
+        self.add_widget(w)
         for f in addons:
-            label = Button(self, text = f.name, command = lambda f=f:self.chose_addon(f))
-            label.pack()
+            w = Button(text = f.name)
+            w.bind(on_press = lambda a, f=f:self.chose_addon(f))
+            self.add_widget(w)
 
     def chose_addon(self, addon):
         global PATH_ADDON
         global NAME_ADDON
+        global wmltree
         PATH_ADDON = addon.path
         NAME_ADDON = addon.name
-        test = parser.parse_file(PATH_ADDON+"/_main.cfg")
-        x = Menu(root)
-        x.pack()
-        test = test.get_all()
-        for i, v in enumerate(test):
-            Label(x, text = v.get_name()).pack()
-        self.destroy()
+        wmltree = parser.parse_file(PATH_ADDON+"/_main.cfg", "MULTIPLAYER,EDITOR")
+        interface.clear_widgets()
+        interface.add_widget(Menu())
 
-class Menu(Page):
-    def __init__(self, *args, **kwargs):
-        Page.__init__(self, *args, **kwargs)
-        Label(self, text = NAME_ADDON).pack()
-        Label(self, text = PATH_ADDON).pack()
-        Button(self, text = "Menu").pack()
-        
-root = Tk()
+    def create(self):
+        os.makedirs(PATH_ADDONS+"/"+self.input.text)
+        io.open(PATH_ADDONS+"/"+self.input.text+"/_main.cfg", 'w', encoding='utf8').close()
 
-PATH_WESNOTH = "C:/Gry/BattleForWesnoth1_13_6"
+class Menu(BoxLayout):
+    def __init__(self):
+        super(Menu, self).__init__(orientation='vertical')
+        self.add_widget(Label(text = NAME_ADDON))
+        self.add_widget(Label(text = PATH_ADDON))
+        self.add_widget(Button(text = "Eras"))
+        self.add_widget(Label(text = str(len(wmltree.get_all(tag = "era")))))
+
+"""
+PATH_WESNOTH = "C:/Gry/BattleForWesnothStable"
 PATH_ADDONS = "C:/Gry/BattleForWesnothStable/userdata/data/add-ons"
+"""
+PATH_WESNOTH = "D:/BattleForWesnothDev"
+PATH_ADDONS = "C:/Users/DarekZ/Documents/My Games/Wesnoth1.13/data/add-ons"
 
 parser = wml.Parser(PATH_WESNOTH+"/wesnoth.exe")
 
-addons = [f for f in os.scandir(PATH_ADDONS) if f.is_dir()]  
+addons = [f for f in os.scandir(PATH_ADDONS) if f.is_dir()]
 
-startPage = StartPage(addons)
-startPage.pack()
+app = WACApp()
+app.run()
