@@ -1,37 +1,21 @@
-import kivy
-from kivy.app import App
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.uix.widget import Widget
-from kivy.uix.textinput import TextInput
-from kivy.uix.boxlayout import BoxLayout
-import os, io
+import os, io, sys
+from PyQt5 import QtWidgets as qt
 import wmlparser3 as wml
 
-class WACApp(App):
-    def build(self):
-        global interface
-        interface = InterfaceManager()
-        return interface
-
-class InterfaceManager(BoxLayout):
-    def __init__(self):
-        super(InterfaceManager, self).__init__()
-        self.add_widget(StartPage())
-        
-
-class StartPage(BoxLayout):
-    def __init__(self):
-        super(StartPage, self).__init__(orientation='vertical')
-        self.input = TextInput()
-        self.add_widget(self.input)
-        w = Button(text="Create")
-        w.bind(on_press = lambda a: self.create())
-        self.add_widget(w)
+class StartPage(qt.QWidget):
+    def __init__(self, addons):
+        super().__init__()
+        vBox = qt.QVBoxLayout()
+        self.setLayout(vBox)
+        self.le = qt.QLineEdit()
+        vBox.addWidget(self.le)
+        button = qt.QPushButton("Create")
+        button.clicked.connect(self.create)
+        vBox.addWidget(button)
         for f in addons:
-            w = Button(text = f.name)
-            w.bind(on_press = lambda a, f=f:self.chose_addon(f))
-            self.add_widget(w)
+            button = qt.QPushButton(f.name)
+            button.clicked.connect(lambda value, f=f:self.chose_addon(f))
+            vBox.addWidget(button)
 
     def chose_addon(self, addon):
         global PATH_ADDON
@@ -40,20 +24,22 @@ class StartPage(BoxLayout):
         PATH_ADDON = addon.path
         NAME_ADDON = addon.name
         wmltree = parser.parse_file(PATH_ADDON+"/_main.cfg", "MULTIPLAYER,EDITOR")
-        interface.clear_widgets()
-        interface.add_widget(Menu())
+        self.menu = Menu()
+        self.menu.show()
 
     def create(self):
-        os.makedirs(PATH_ADDONS+"/"+self.input.text)
-        io.open(PATH_ADDONS+"/"+self.input.text+"/_main.cfg", 'w', encoding='utf8').close()
+        os.makedirs(PATH_ADDONS+"/"+self.le.text())
+        io.open(PATH_ADDONS+"/"+self.le.text()+"/_main.cfg", 'w', encoding='utf8').close()
 
-class Menu(BoxLayout):
+class Menu(qt.QWidget):
     def __init__(self):
-        super(Menu, self).__init__(orientation='vertical')
-        self.add_widget(Label(text = NAME_ADDON))
-        self.add_widget(Label(text = PATH_ADDON))
-        self.add_widget(Button(text = "Eras"))
-        self.add_widget(Label(text = str(len(wmltree.get_all(tag = "era")))))
+        super().__init__()
+        vBox = qt.QVBoxLayout()
+        self.setLayout(vBox)
+        vBox.addWidget(qt.QLabel(NAME_ADDON))
+        vBox.addWidget(qt.QLabel(PATH_ADDON))
+        vBox.addWidget(qt.QPushButton("Eras"))
+        vBox.addWidget(qt.QLabel(str(len(wmltree.get_all(tag = "era")))))
 
 """
 PATH_WESNOTH = "C:/Gry/BattleForWesnothStable"
@@ -64,7 +50,11 @@ PATH_ADDONS = "C:/Users/DarekZ/Documents/My Games/Wesnoth1.13/data/add-ons"
 
 parser = wml.Parser(PATH_WESNOTH+"/wesnoth.exe")
 
-addons = [f for f in os.scandir(PATH_ADDONS) if f.is_dir()]
+addons = [f for f in os.scandir(PATH_ADDONS) if f.is_dir()]  
 
-app = WACApp()
-app.run()
+app = qt.QApplication(sys.argv)
+
+startPage = StartPage(addons)
+startPage.show()
+
+sys.exit(app.exec_())
