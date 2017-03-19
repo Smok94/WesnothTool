@@ -1,19 +1,38 @@
 import os, io, sys
-from PyQt5 import QtWidgets as qt
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5 import QtCore
 import wmlparser3 as wml
 
-class StartPage(qt.QWidget):
-    def __init__(self, addons):
+class MainWindow(QWidget):
+    def __init__(self):
         super().__init__()
-        vBox = qt.QVBoxLayout()
+        self.setWindowTitle("Wesnoth Addon Creator")
+        vBox = QVBoxLayout() 
+        hBox = QHBoxLayout()
+        l = QLabel()
+        l.setPixmap(QPixmap("images/bfw-logo.png"))
+        hBox.addStretch(1)
+        hBox.addWidget(l)
+        hBox.addStretch(1)
         self.setLayout(vBox)
-        self.le = qt.QLineEdit()
+        vBox.addLayout(hBox)
+        self.startPage = StartPage(addons, self)
+        self.startPage.setGeometry(0, 0, self.width(), self.height())
+        self.startPage.show()
+
+class StartPage(QWidget):
+    def __init__(self, addons, parent = None):
+        super().__init__(parent)
+        vBox = QVBoxLayout()
+        self.setLayout(vBox)
+        self.le = QLineEdit()
         vBox.addWidget(self.le)
-        button = qt.QPushButton("Create")
+        button = QPushButton("Create")
         button.clicked.connect(self.create)
         vBox.addWidget(button)
         for f in addons:
-            button = qt.QPushButton(f.name)
+            button = QPushButton(f.name)
             button.clicked.connect(lambda value, f=f:self.chose_addon(f))
             vBox.addWidget(button)
 
@@ -30,16 +49,17 @@ class StartPage(qt.QWidget):
     def create(self):
         os.makedirs(PATH_ADDONS+"/"+self.le.text())
         io.open(PATH_ADDONS+"/"+self.le.text()+"/_main.cfg", 'w', encoding='utf8').close()
+        self.update()
 
-class Menu(qt.QWidget):
-    def __init__(self):
-        super().__init__()
-        vBox = qt.QVBoxLayout()
+class Menu(QWidget):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        vBox = QVBoxLayout()
         self.setLayout(vBox)
-        vBox.addWidget(qt.QLabel(NAME_ADDON))
-        vBox.addWidget(qt.QLabel(PATH_ADDON))
-        vBox.addWidget(qt.QPushButton("Eras"))
-        vBox.addWidget(qt.QLabel(str(len(wmltree.get_all(tag = "era")))))
+        vBox.addWidget(QLabel(NAME_ADDON))
+        vBox.addWidget(QLabel(PATH_ADDON))
+        vBox.addWidget(QPushButton("Eras"))
+        vBox.addWidget(QLabel(str(len(wmltree.get_all(tag = "era")))))
 
 """
 PATH_WESNOTH = "C:/Gry/BattleForWesnothStable"
@@ -52,9 +72,14 @@ parser = wml.Parser(PATH_WESNOTH+"/wesnoth.exe")
 
 addons = [f for f in os.scandir(PATH_ADDONS) if f.is_dir()]  
 
-app = qt.QApplication(sys.argv)
+app = QApplication(sys.argv)
+app.setStyle(QStyleFactory.create("windows"))
+sshFile="darkorange.qss"
+with open(sshFile,"r") as fh:
+    app.setStyleSheet(fh.read())
+app.setStyle("plastique")
 
-startPage = StartPage(addons)
-startPage.show()
+mainWindow = MainWindow()
+mainWindow.show()
 
 sys.exit(app.exec_())
