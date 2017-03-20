@@ -11,6 +11,13 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("MainWindow {background-image: url(images/bfw-logo.png); background-repeat: no-repeat; background-position: center;}")
         self.setCentralWidget(StartPage(addons))
 
+class MainWidget(QWidget):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        hBox = QHBoxLayout()
+        self.setLayout(hBox)
+        hBox.addWidget(Menu())
+
 class StartPage(QWidget):
     def __init__(self, addons, parent = None):
         super().__init__(parent)
@@ -36,9 +43,11 @@ class StartPage(QWidget):
         global PATH_ADDON
         global NAME_ADDON
         global wmltree
+        global data
         PATH_ADDON = addon.path
         NAME_ADDON = addon.name
-        data.loadAddon()
+        data = WesData(PATH_ADDON+"/_main.cfg")
+        data.load()
         wmltree = parser.parse_file(PATH_ADDON+"/_main.cfg", "MULTIPLAYER,EDITOR")
         mainWindow.setCentralWidget(MainWidget())
 
@@ -46,16 +55,29 @@ class StartPage(QWidget):
         os.makedirs(PATH_ADDONS+"/"+self.le.text())
         io.open(PATH_ADDONS+"/"+self.le.text()+"/_main.cfg", 'w', encoding='utf8').close()
 
-class MainWidget(QWidget):
+class ElementsList(QWidget):
     def __init__(self, parent = None):
+        super().__init__(parent)
+        vBox = QVBoxLayout()
+        list = QListWidget()
+        self.setLayout(vBox)
+        vBox.addWidget(list)
+        for unit in data.units:
+            widget = UnitListItem(unit.name, PATH_IMAGES+unit.image)
+            item = QListWidgetItem()
+            item.setSizeHint(widget.sizeHint())
+            list.addItem(item)
+            list.setItemWidget(item, widget);
+
+class UnitListItem(QWidget):
+    def __init__(self, name, image, parent = None):
         super().__init__(parent)
         hBox = QHBoxLayout()
         self.setLayout(hBox)
-        hBox.addWidget(Menu())
-
-class UnitsList(QWidget):
-    def __init__(self, parent = None):
-        super().__init__(parent)
+        l = QLabel()
+        l.setPixmap(QPixmap(image))
+        hBox.addWidget(l)
+        hBox.addWidget(QLabel(name))
 
 class Menu(QWidget):
     def __init__(self, parent = None):
@@ -69,7 +91,9 @@ class Menu(QWidget):
         hBox.addWidget(QLabel(str(len(wmltree.get_all(tag = "era")))))
         vBox.addLayout(hBox)
         hBox = QHBoxLayout()
-        hBox.addWidget(QPushButton("Units"))
+        b = QPushButton("Units")
+        b.clicked.connect(self.createList)
+        hBox.addWidget(b)
         units = wmltree.get_all(tag = "units")
         uNumber = 0
         if len(units) > 0:
@@ -77,7 +101,7 @@ class Menu(QWidget):
                 uNumber += len(tag.get_all(tag = "unit_type"))
         hBox.addWidget(QLabel(str(uNumber)))
         vBox.addLayout(hBox)
-        for unit in data.addon.units:
+        for unit in data.units:
             hBox = QHBoxLayout()
             hBox.addWidget(QLabel(unit.id))
             hBox.addWidget(QLabel(unit.name))
@@ -86,28 +110,49 @@ class Menu(QWidget):
             hBox.addWidget(l)
             vBox.addLayout(hBox)
 
+    def createList(self):
+        el = ElementsList()
+        mainWindow.centralWidget().layout().addWidget(el)
+
 class DataLoader():
     def __init__(self):
         pass
+
+class WesData():
+    def __init__(self, path):
+        self.units = []
+        self.campaigns = []
+        self.path = path
+        self.defines = "MULTIPLAYER,EDITOR"
 
     def att(self, tag, at):
         list = tag.get_all(att = at)
         if len(list) > 0:
             return list[0].get_text()
         return  None
-    
-    def loadAddon(self):
-        self.addon = DataStructure()
-        wmltree = parser.parse_file(PATH_ADDON+"/_main.cfg", "MULTIPLAYER,EDITOR")
-        unitsTag = wmltree.get_all(tag = "units")
+
+    def load(self):
+        self.wmltree = parser.parse_file(self.path, self.defines)
+        #campaigns must go first
+        self.loadCampaigns()
+        self.loadUnits()
+
+    def loadCampaigns(self):
+        tags = self.wmltree.get_all(tag = "campaign")
+        for tag in tags:
+            define = self.att(tag, "define")
+            self.campaigns.append(SCampaign(self.att(tag, "id"), self.att(tag, "name"), define))
+            if define:
+                self.defines = self.defines + "," + self.att(tag, "define")
+        self.wmltree = parser.parse_file(self.path, self.defines)           
+
+    def loadUnits(self):
+        unitsTag = self.wmltree.get_all(tag = "units")
         for tags in unitsTag:
             unitTags = tags.get_all(tag = "unit_type")
             for tag in unitTags:
-                self.addon.units.append(SUnit(self.att(tag, "id"), self.att(tag, "name"), self.att(tag, "image")))
-
-class DataStructure():
-    def __init__(self):
-        self.units = []
+                self.units.append(SUnit(self.att(tag, "id"), self.att(tag, "name"), self.att(tag, "image")))
+        
 
 class SUnit():
     def __init__(self, id, name, image):
@@ -116,6 +161,12 @@ class SUnit():
         if not image:
             image = "units/unknown-unit.png"
         self.image = image
+
+class SCampaign():
+    def __init__(self, id, name, define):
+        self.id = id
+        self.name = name
+        self.define = define
         
 """
 PATH_WESNOTH = "C:/Gry/BattleForWesnothStable"
@@ -135,8 +186,6 @@ sshFile="darkorange.qss"
 with open(sshFile,"r") as fh:
     app.setStyleSheet(fh.read())
 app.setStyle("plastique")
-
-data = DataLoader()
 
 mainWindow = MainWindow()
 mainWindow.show()
