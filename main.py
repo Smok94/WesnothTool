@@ -59,15 +59,20 @@ class ElementsList(QWidget):
     def __init__(self, parent = None):
         super().__init__(parent)
         vBox = QVBoxLayout()
-        list = QListWidget()
+        self.list = QListWidget()
+        self.list.currentRowChanged.connect(self.unitSelected)
         self.setLayout(vBox)
-        vBox.addWidget(list)
+        vBox.addWidget(self.list)
         for unit in data.units:
             widget = UnitListItem(unit.name, PATH_IMAGES+unit.image)
             item = QListWidgetItem()
             item.setSizeHint(widget.sizeHint())
-            list.addItem(item)
-            list.setItemWidget(item, widget);
+            self.list.addItem(item)
+            self.list.setItemWidget(item, widget);           
+
+    def unitSelected(self, num):
+        editor = UnitEditor(data.units[num])
+        mainWindow.centralWidget().layout().addWidget(editor)
 
 class UnitListItem(QWidget):
     def __init__(self, name, image, parent = None):
@@ -151,23 +156,52 @@ class WesData():
         for tags in unitsTag:
             unitTags = tags.get_all(tag = "unit_type")
             for tag in unitTags:
-                self.units.append(SUnit(self.att(tag, "id"), self.att(tag, "name"), self.att(tag, "image")))
+                self.units.append(SUnit(self.att(tag, "experience"), self.att(tag, "hitpoints"), self.att(tag, "id"), self.att(tag, "image"), self.att(tag, "movement"), self.att(tag, "name")))
         
 
 class SUnit():
-    def __init__(self, id, name, image):
+    def __init__(self, experience, hitpoints, id, image, movement, name):
+        self.experience = experience
+        self.hitpoints = hitpoints
         self.id = id
-        self.name = name
         if not image:
             image = "units/unknown-unit.png"
         self.image = image
+        self.movement = movement
+        self.name = name
+        
 
 class SCampaign():
     def __init__(self, id, name, define):
         self.id = id
         self.name = name
         self.define = define
-        
+
+class UnitEditor(QWidget):
+    def __init__(self, unit, parent = None):
+        super().__init__(parent)
+        vBox = QVBoxLayout()
+        self.setLayout(vBox)
+        h = QHBoxLayout()
+        vBox.addLayout(h)
+        v = QVBoxLayout()
+        l = QLabel()
+        l.setPixmap(QPixmap(PATH_IMAGES+unit.image))
+        h.addWidget(l)
+        h.addLayout(v)
+        v1 = QVBoxLayout()
+        v1.addWidget(QLabel("HP"))
+        v1.addWidget(QLineEdit(unit.hitpoints))
+        v.addLayout(v1)
+        v1 = QVBoxLayout()
+        v1.addWidget(QLabel("XP"))
+        v1.addWidget(QLineEdit(unit.experience))
+        v.addLayout(v1)
+        v1 = QVBoxLayout()
+        v.addLayout(v1)
+        v1.addWidget(QLabel("MP"))
+        v1.addWidget(QLineEdit(unit.movement))
+
 """
 PATH_WESNOTH = "C:/Gry/BattleForWesnothStable"
 PATH_ADDONS = "C:/Gry/BattleForWesnothStable/userdata/data/add-ons"
