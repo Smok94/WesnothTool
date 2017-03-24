@@ -1,22 +1,65 @@
 import os, io, sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5 import QtCore
+from PyQt5.QtCore import *
 import wmlparser3 as wml
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Wesnoth Addon Creator")
-        self.setStyleSheet("MainWindow {background-image: url(images/bfw-logo.png); background-repeat: no-repeat; background-position: center;}")
-        self.setCentralWidget(StartPage(addons))
+        sa = QScrollArea()
+        self.setCentralWidget(sa)
+        sa.setWidget(MainWidget())
+        sa.setStyleSheet("QScrollArea {background-image: url(images/bfw-logo.png); background-repeat: no-repeat; background-position: center;}")
 
 class MainWidget(QWidget):
     def __init__(self, parent = None):
         super().__init__(parent)
-        hBox = QHBoxLayout()
+        hBox = MainLayout()
         self.setLayout(hBox)
-        hBox.addWidget(Menu())
+        hBox.addWidget(Window(StartPage(addons)))
+        #w = Window(StartPage(addons), self)
+        #w.setGeometry(0,0,300,300)
+
+class MainLayout(QLayout):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+
+class Window(QMainWindow):
+    def __init__(self, widget = None, parent = None):
+        super().__init__(parent)
+        if widget:
+            self.setCentralWidget(widget)
+        self.setMenuBar(WindowMenuBar(self))
+        self.adjustSize()
+        self.setFixedSize(self.size())
+        self.frameSize()
+
+class WindowMenuBar(QMenuBar):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.parent = parent
+        self.drag = False
+        button = QPushButton("X")
+        button.clicked.connect(self.close)
+        self.setCornerWidget(button)
+
+    def close(self):
+        self.parent.setParent(None)
+
+    def mousePressEvent(self, event):
+        self.drag = True
+        self.oldPos = event.globalPos()
+
+    def mouseMoveEvent(self, event):
+        if self.drag:
+            delta = QPoint(event.globalPos() - self.oldPos)
+            self.parent.move(self.parent.x() + delta.x(), self.parent.y() + delta.y())
+            self.oldPos = event.globalPos()
+
+    def mouseReleaseEvent(self, event):
+        self.drag = False
 
 class StartPage(QWidget):
     def __init__(self, addons, parent = None):
@@ -222,14 +265,14 @@ class WMLGenerator():
         f.close()
 
 """
-PATH_WESNOTH = "C:/Gry/BattleForWesnothStable"
-PATH_ADDONS = "C:/Gry/BattleForWesnothStable/userdata/data/add-ons"
+PATH_WESNOTH = "D:/BattleForWesnothDev"
+PATH_ADDONS = "C:/Users/DarekZ/Documents/My Games/Wesnoth1.13/data/add-ons"
 """
 
 VERSION = "PreAlfa 0.1"
-PATH_WESNOTH = "D:/BattleForWesnothDev"
+PATH_WESNOTH = "C:/Gry/BattleForWesnoth"
 PATH_IMAGES = PATH_WESNOTH + "/data/core/images/"
-PATH_ADDONS = "C:/Users/DarekZ/Documents/My Games/Wesnoth1.13/data/add-ons"
+PATH_ADDONS = "C:/Gry/BattleForWesnothStable/userdata/data/add-ons"
 
 parser = wml.Parser(PATH_WESNOTH+"/wesnoth.exe")
 
