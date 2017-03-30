@@ -1,29 +1,31 @@
 import os, io, sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5 import QtCore
+from PyQt5.QtCore import *
 import wmlparser3 as wml
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Wesnoth Addon Creator")
-        global mdi
-        mdi = Mdi()
-        mdi.setStyleSheet("QMdiArea {background-image: url(images/bfw-logo.png); background-repeat: no-repeat; background-position: center;}")
+        mdi = MdiArea()
+        #mdi.setStyleSheet("QMdiArea {background-image: url(images/bfw-logo.png); background-repeat: no-repeat; background-position: center;}")
         self.setCentralWidget(mdi)
-        self.addToolBar(MainToolBar())
+        self.addToolBar(MainToolBar(mdi))
 
 class MainToolBar(QToolBar):
-    def __init__(self, parent = None):
+    def __init__(self, mdi, parent = None):
         super().__init__()
+        self.mdi = mdi
         self.addAction("Load Addon").triggered.connect(self.aLoadAddon)
         self.addAction("Settings")
 
     def aLoadAddon(self):
-        mdi.addSubWindow(StartPage(addons))
+        sw = (StartPage(addons))
+        self.mdi.addSubWindow(sw)
+        sw.show()
 
-class Mdi(QMdiArea):
+class MdiArea(QMdiArea):
     def __init__(self, parent = None):
         super().__init__()
 
