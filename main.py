@@ -8,19 +8,39 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Wesnoth Addon Creator")
-        self.setStyleSheet("MainWindow {background-image: url(images/bfw-logo.png); background-repeat: no-repeat; background-position: center;}")
-        self.setCentralWidget(StartPage(addons))
+        global mdi
+        mdi = Mdi()
+        mdi.setStyleSheet("QMdiArea {background-image: url(images/bfw-logo.png); background-repeat: no-repeat; background-position: center;}")
+        self.setCentralWidget(mdi)
+        self.addToolBar(MainToolBar())
 
-class MainWidget(QWidget):
+class MainToolBar(QToolBar):
     def __init__(self, parent = None):
-        super().__init__(parent)
-        hBox = QHBoxLayout()
-        self.setLayout(hBox)
-        hBox.addWidget(Menu())
+        super().__init__()
+        self.addAction("Load Addon").triggered.connect(self.aLoadAddon)
+        self.addAction("Settings")
+
+    def aLoadAddon(self):
+        mdi.addSubWindow(StartPage(addons))
+
+class Mdi(QMdiArea):
+    def __init__(self, parent = None):
+        super().__init__()
+
+    def paintEvent (self, event):
+        super().paintEvent(event)
+        painter = QPainter()
+        painter.begin(self.viewport())
+        painter.fillRect(0, 0, self.width(), self.height(), QColor(50,50,50,255))
+        pixmap = QPixmap("images/bfw-logo.png")
+        x = self.width() - pixmap.width()
+        y = self.height() - pixmap.height()
+        painter.drawPixmap(x, y, pixmap)
+        painter.end()
 
 class StartPage(QWidget):
     def __init__(self, addons, parent = None):
-        super().__init__(parent)
+        super().__init__()
         hBox = QHBoxLayout()
         hBox.addStretch(1)
         vBox = QVBoxLayout()
