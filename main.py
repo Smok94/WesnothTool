@@ -1,15 +1,15 @@
-import os, io, sys
+import os, io, sys, json
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import wmlparser3 as wml
+import ui.settings
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Wesnoth Addon Creator")
         mdi = MdiArea()
-        #mdi.setStyleSheet("QMdiArea {background-image: url(images/bfw-logo.png); background-repeat: no-repeat; background-position: center;}")
         self.setCentralWidget(mdi)
         self.addToolBar(MainToolBar(mdi))
 
@@ -18,12 +18,36 @@ class MainToolBar(QToolBar):
         super().__init__()
         self.mdi = mdi
         self.addAction("Load Addon").triggered.connect(self.aLoadAddon)
-        self.addAction("Settings")
+        self.addAction("Settings").triggered.connect(self.aSettings)
 
     def aLoadAddon(self):
-        sw = (StartPage(addons))
-        self.mdi.addSubWindow(sw)
-        sw.show()
+        w = StartPage(addons, self.mdi)
+        self.mdi.addSubWindow(w)
+        w.show()
+
+    def aSettings(self):
+        w = ui.settings.SettingsWindow(cfg)
+        self.mdi.addSubWindow(w)
+        w.show()
+
+class AddonToolBar(QToolBar):
+    def __init__(self, mdi, parent = None):
+        super().__init__()
+        self.mdi = mdi
+        self.addAction(NAME_ADDON)
+        self.units()
+
+    def units(self):
+        combo = QComboBox()
+        self.addWidget(combo)
+        combo.activated.connect(self.unitsE)
+        for unit in data.units:
+            combo.addItem(unit.name)
+            
+    def unitsE(self, value):
+        w = UnitEditor(data.units[value])
+        self.mdi.addSubWindow(w)
+        w.show()      
 
 class MdiArea(QMdiArea):
     def __init__(self, parent = None):
@@ -41,8 +65,9 @@ class MdiArea(QMdiArea):
         painter.end()
 
 class StartPage(QWidget):
-    def __init__(self, addons, parent = None):
+    def __init__(self, addons, mdi, parent = None):
         super().__init__()
+        self.mdi = mdi
         hBox = QHBoxLayout()
         hBox.addStretch(1)
         vBox = QVBoxLayout()
@@ -71,7 +96,8 @@ class StartPage(QWidget):
         data = WesData(PATH_ADDON+"/_main.cfg")
         data.load()
         wmltree = parser.parse_file(PATH_ADDON+"/_main.cfg", "MULTIPLAYER,EDITOR")
-        mainWindow.setCentralWidget(MainWidget())
+        mainWindow.addToolBar(Qt.LeftToolBarArea, AddonToolBar(self.mdi))
+        self.mdi.removeSubWindow(self.parentWidget())
 
     def create(self):
         os.makedirs(PATH_ADDONS+"/"+self.le.text())
@@ -256,6 +282,8 @@ PATH_ADDONS = "C:/Users/DarekZ/Documents/My Games/Wesnoth1.13/data/add-ons"
 parser = wml.Parser(PATH_WESNOTH+"/wesnoth.exe")
 
 addons = [f for f in os.scandir(PATH_ADDONS) if f.is_dir()]  
+
+cfg = ui.settings.load()
 
 app = QApplication(sys.argv)
 app.setStyle(QStyleFactory.create("windows"))
