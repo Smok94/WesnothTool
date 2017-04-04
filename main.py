@@ -4,7 +4,16 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import wmlparser3 as wml
 import ui.settings
-import tools.wmlgen
+import tools.generator
+
+def wesPixmap(pixmap, path):
+    if pixmap.load(PATH_IMAGES+path):
+        return pixmap
+    elif pixmap.load(PATH_ADDON+"/images/"+path):
+        return pixmap
+    else:
+        pixmap.load(PATH_IMAGES+"units/unknown-unit.png")
+        return pixmap    
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -46,7 +55,7 @@ class AddonToolBar(QToolBar):
             combo.addItem(unit.name)
             
     def unitEdit(self, value):
-        w = UnitEditor(value)
+        w = UnitEditor(data.units[value])
         self.mdi.addSubWindow(w)
         w.show()      
 
@@ -98,72 +107,6 @@ class StartPage(QWidget):
     def create(self):
         os.makedirs(PATH_ADDONS+"/"+self.le.text())
         io.open(PATH_ADDONS+"/"+self.le.text()+"/_main.cfg", 'w', encoding='utf8').close()
-
-###
-class ElementsList(QWidget):
-    def __init__(self, parent = None):
-        super().__init__(parent)
-        vBox = QVBoxLayout()
-        self.list = QListWidget()
-        self.list.currentRowChanged.connect(self.unitSelected)
-        self.setLayout(vBox)
-        vBox.addWidget(self.list)
-        for unit in data.units:
-            widget = UnitListItem(unit.name, PATH_IMAGES+unit.image)
-            item = QListWidgetItem()
-            item.setSizeHint(widget.sizeHint())
-            self.list.addItem(item)
-            self.list.setItemWidget(item, widget);           
-
-    def unitSelected(self, num):
-        editor = UnitEditor(data.units[num])
-        mainWindow.centralWidget().layout().addWidget(editor)
-
-class UnitListItem(QWidget):
-    def __init__(self, name, image, parent = None):
-        super().__init__(parent)
-        hBox = QHBoxLayout()
-        self.setLayout(hBox)
-        l = QLabel()
-        l.setPixmap(QPixmap(image))
-        hBox.addWidget(l)
-        hBox.addWidget(QLabel(name))
-
-class Menu(QWidget):
-    def __init__(self, parent = None):
-        super().__init__(parent)
-        vBox = QVBoxLayout()
-        self.setLayout(vBox)
-        vBox.addWidget(QLabel(NAME_ADDON))
-        vBox.addWidget(QLabel(PATH_ADDON))
-        hBox = QHBoxLayout()
-        hBox.addWidget(QPushButton("Eras"))
-        hBox.addWidget(QLabel(str(len(wmltree.get_all(tag = "era")))))
-        vBox.addLayout(hBox)
-        hBox = QHBoxLayout()
-        b = QPushButton("Units")
-        b.clicked.connect(self.createList)
-        hBox.addWidget(b)
-        units = wmltree.get_all(tag = "units")
-        uNumber = 0
-        if len(units) > 0:
-            for tag in units:
-                uNumber += len(tag.get_all(tag = "unit_type"))
-        hBox.addWidget(QLabel(str(uNumber)))
-        vBox.addLayout(hBox)
-        for unit in data.units:
-            hBox = QHBoxLayout()
-            hBox.addWidget(QLabel(unit.id))
-            hBox.addWidget(QLabel(unit.name))
-            l = QLabel()
-            l.setPixmap(QPixmap(PATH_IMAGES+unit.image))
-            hBox.addWidget(l)
-            vBox.addLayout(hBox)
-
-    def createList(self):
-        el = ElementsList()
-        mainWindow.centralWidget().layout().addWidget(el)
-###
 
 class WesData():
     def __init__(self, path):
@@ -219,42 +162,41 @@ class SCampaign():
         self.define = define
 
 class UnitEditor(QWidget):
-    def __init__(self, num, parent = None):
+    def __init__(self, unit, parent = None):
         super().__init__(parent)
-        self.num = num
-        unit = data.units[self.num]
+        self.unit = unit
         vBox = QVBoxLayout()
         self.setLayout(vBox)
         h = QHBoxLayout()
         vBox.addLayout(h)
         v = QVBoxLayout()
         l = QLabel()
-        l.setPixmap(QPixmap(PATH_IMAGES+unit.image))
+        l.setPixmap(wesPixmap(QPixmap(), self.unit.image))
         h.addWidget(l)
         h.addLayout(v)
         v1 = QVBoxLayout()
         v1.addWidget(QLabel("HP"))
-        le = QLineEdit(unit.hitpoints)
+        le = QLineEdit(self.unit.hitpoints)
         le.textEdited.connect(self.hp)
         v1.addWidget(le)
         v.addLayout(v1)
         v1 = QVBoxLayout()
         v1.addWidget(QLabel("XP"))
-        v1.addWidget(QLineEdit(unit.experience))
+        v1.addWidget(QLineEdit(self.unit.experience))
         v.addLayout(v1)
         v1 = QVBoxLayout()
         v.addLayout(v1)
         v1.addWidget(QLabel("MP"))
-        v1.addWidget(QLineEdit(unit.movement))
+        v1.addWidget(QLineEdit(self.unit.movement))
         b = QPushButton("Save")
         b.clicked.connect(self.save)
         vBox.addWidget(b)
 
     def hp(self, val):
-        data.units[self.num].hitpoints = val
+        self.unit.hitpoints = val
 
     def save(self):
-        tools.wmlgen.Gen(PATH_ADDON, VERSION).unit(data.units[self.num])
+        tools.generator.Generator(PATH_ADDON, VERSION).unit(self.unit)
 
 VERSION = "PreAlpha 0.1"
 PATH_WESNOTH = "D:/BattleForWesnothDev"
