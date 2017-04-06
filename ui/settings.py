@@ -3,24 +3,23 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-def save(cfg):
+def save():
     with open("config.json", "w") as f:
         json.dump(cfg, f)
         f.close()
 
 def load():
+    global cfg
     if os.path.exists("config.json"):
         with open("config.json", "r") as f:
             cfg = json.loads(f.read())
             f.close()
     else:
-        cfg = []
-    return cfg
+        cfg = {}
 
 class SettingsWindow(QWidget):
-    def __init__(self, cfg, parent = None):
+    def __init__(self, parent = None):
         super().__init__()
-        self.cfg = cfg
         vBox = QVBoxLayout()
         self.setLayout(vBox)
         hBox = QHBoxLayout()
@@ -30,14 +29,12 @@ class SettingsWindow(QWidget):
         hBox.addWidget(self.list)
         self.sw = QStackedWidget()
         self.sw.setLayout(QVBoxLayout())
-        self.dir("Paths")
+        self.dir("Paths", "WesnothPath", "Path to Wesnoth folder")
+        self.dir("Paths", "AddonsPath", "Path to addons folder")
         hBox.addWidget(self.sw)
         b = QPushButton("Save")
-        b.clicked.connect(self.save)
+        b.clicked.connect(save)
         vBox.addWidget(b)
-
-    def save(self):
-        save(self.cfg)
 
     def changePage(self, int):
         self.sw.setCurrentIndex(int)
@@ -48,10 +45,10 @@ class SettingsWindow(QWidget):
             self.sw.addWidget(page)
             self.list.addItem(name)
 
-    def dir(self, page):
+    def dir(self, page, id, name):
         self.addPage(page)
         x = next(x for x in range(self.sw.count()) if self.sw.widget(x).name == page)
-        self.sw.widget(x).addWidget(Directory())
+        self.sw.widget(x).addWidget(Directory(id, name))
 
 class Page(QWidget):
     def __init__(self, name, parent = None):
@@ -65,15 +62,31 @@ class Page(QWidget):
         self.layout.addWidget(widget)
 
 class Directory(QWidget):
-    def __init__(self, parent = None):
+    def __init__(self, id, name, parent = None):
         super().__init__()
+        self.id = id
         vBox = QVBoxLayout()
         self.setLayout(vBox)
-        self.select()
+        vBox.addWidget(QLabel(name))
+        hBox = QHBoxLayout()
+        vBox.addLayout(hBox)
+        self.l = QLabel()
+        if self.id in cfg:
+            self.l.setText(cfg[self.id])
+        else:
+            self.l.setText("UNSET")
+        hBox.addWidget(self.l)
+        b = QPushButton("Change")
+        b.clicked.connect(self.change)
+        hBox.addWidget(b)
 
-    def select(self):
+    def change(self):
         self.dialog = QFileDialog()
-        self.dialog.setFileMode(QFileDialog.Directory)
+        self.dialog.setFileMode(QFileDialog.DirectoryOnly)
         self.dialog.setOption(QFileDialog.ShowDirsOnly)
+        self.dialog.fileSelected.connect(self.changed)
         self.dialog.show()
-        
+
+    def changed(self, val):
+        self.l.setText(val)
+        cfg[self.id] = val
