@@ -1,4 +1,4 @@
-import os, io, sys, json
+import os, io, sys, json, gettext
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -21,7 +21,7 @@ def wesPixmap(pixmap, path):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Wesnoth Addon Creator")
+        self.setWindowTitle(_("Wesnoth Addon Creator"))
         mdi = MdiArea()
         self.setCentralWidget(mdi)
         self.addToolBar(MainToolBar(mdi))
@@ -216,6 +216,12 @@ class UnitEditor(QWidget):
         tools.generator.Generator(PATH_ADDON, VERSION).unit(self.unit)
 
 cfg.load()
+
+if "Language" in cfg.cfg and os.path.isfile("translations/"+cfg.cfg["Language"]+"/LC_MESSAGES/wac.mo"):
+    translation = gettext.translation('wac', localedir='translations', languages=[cfg.cfg["Language"]])
+    translation.install()
+else:
+    _ = lambda s: s
 
 app = QApplication(sys.argv)
 app.setStyle(QStyleFactory.create("windows"))

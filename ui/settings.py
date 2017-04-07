@@ -56,7 +56,7 @@ class Page(QWidget):
         self.name = name
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-        self.layout.addWidget(QLabel(self.name))
+        self.layout.addWidget(QLabel(_(self.name)))
 
     def addWidget(self, widget):
         self.layout.addWidget(widget)
