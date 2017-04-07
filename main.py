@@ -31,18 +31,16 @@ class MainToolBar(QToolBar):
         super().__init__()
         self.mdi = mdi
         self.addAction("Load Addon").triggered.connect(self.aLoadAddon)
-        self.addAction("Settings")
+        self.addAction("Settings").triggered.connect(self.aSettings)
 
     def aLoadAddon(self):
         addons = [f for f in os.scandir(cfg.cfg["AddonsPath"]) if f.is_dir()]
         w = StartPage(addons, self.mdi)
-        self.mdi.addSubWindow(w)
-        w.show()
+        self.mdi.addSubWindow(w, "addons")
 
     def aSettings(self):
         w = cfg.SettingsWindow()
-        self.mdi.addSubWindow(w)
-        w.show()
+        self.mdi.addSubWindow(w, "settings")
 
 class AddonToolBar(QToolBar):
     def __init__(self, mdi, parent = None):
@@ -60,8 +58,7 @@ class AddonToolBar(QToolBar):
             
     def unitEdit(self, value):
         w = UnitEditor(data.units[value])
-        self.mdi.addSubWindow(w)
-        w.show()      
+        self.mdi.addSubWindow(w)     
 
 class MdiArea(QMdiArea):
     def __init__(self, parent = None):
@@ -77,15 +74,24 @@ class MdiArea(QMdiArea):
         y = self.height() - pixmap.height()
         painter.drawPixmap(x, y, pixmap)
         painter.end()
-###        
-class SubWindow(QMdiSubWindow):
-    def __init__(self, id, widget, parent = None):
-        super().__init__(widget)
-        self.id = id
 
-    def closeEvent(event):
-        super().closeEvent(event)
-###        
+    def addSubWindow(self, widget, id = None):
+        if not id or not any(x.id == id for i, x in enumerate(self.subWindowList())):
+            sw = SubWindow(widget, id)
+            sw.setAttribute(Qt.WA_DeleteOnClose);
+            super().addSubWindow(sw)
+            sw.show()
+        else:
+            x = next(x for x in self.subWindowList() if x.id == id)
+            x.setFocus()
+        
+class SubWindow(QMdiSubWindow):
+    def __init__(self, widget, id = None, parent = None):
+        super().__init__()
+        self.setWidget(widget)
+        self.resize(self.sizeHint())
+        self.id = id
+        
 class StartPage(QWidget):
     def __init__(self, addons, mdi, parent = None):
         super().__init__()
