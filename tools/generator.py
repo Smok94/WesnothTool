@@ -15,6 +15,31 @@ class Generator():
                 self.writeAtt(f, unit, a[0], a[1])
             self.closeTag(f, "unit_type")
 
+    def era(self, era):
+        with open(self.path+"/eras/"+getattr(era, "id")+".cfg", "w") as f:
+            self.lvl = 0
+            f.write(self.header)
+            self.openTag(f, "era")
+            atts = [["id", 0], ["name", 2]]
+            for a in atts:
+                self.writeAtt(f, era, a[0], a[1])
+            for s in era.sides:
+                self.openTag(f, "multiplayer_side")
+                atts = [["id", 0], ["name", 2], ["leader", 0], ["recruit", 0]]
+                for a in atts:
+                    self.writeAtt(f, s, a[0], a[1]) 
+                self.closeTag(f, "multiplayer_side")
+            self.closeTag(f, "era")
+
+    def addoninfo(self, addon):
+        with open(self.path+"/_server.pbl", "w") as f:
+            self.lvl = 0
+            f.write(self.header)
+            f.write('comment = "This file contains informations about addon."\n')
+            atts = [["title", 1], ["version", 1], ["author", 1], ["passphrase", 1], ["description", 1], ["type", 1]]
+            for a in atts:
+                self.writeAtt(f, addon, a[0], a[1])
+
     def writeAtt(self, f, obj, att, mode):
         """
         modes:
