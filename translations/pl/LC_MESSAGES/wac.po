@@ -12,7 +12,7 @@ msgstr ""
 "X-Generator: Poedit 1.8.11\n"
 
 msgid "Wesnoth Addon Creator"
-msgstr "Kreator Dodatków Wesnoth"
+msgstr "Wesnoth Addon Creator"
 
 msgid "Paths"
-msgstr "Ścieżki"
+msgstr "Paths"
